@@ -74,7 +74,30 @@ public class Helper {
             return ret;
         }
     }
+    public static HashMap<String,String[]> cacheFiletoMap(File file) throws IOException{
+    	String line = null; 
+    	HashMap<String, String[]> cache = new HashMap<String, String[]>(); 
+        BufferedReader br = new BufferedReader(new FileReader(file)); 
+        // read file line by line 
+        while ((line = br.readLine()) != null) { 
 
+            // split the line by : 
+        	
+            String[] parts = line.split(":"); 
+
+            // first part is name, second is number 
+            String name = parts[0].trim(); 
+            String number = parts[1].trim(); 
+            String time = parts[2].trim(); 
+
+            // put name, number in HashMap if they are 
+            // not empty 
+            if (!name.equals("") && !number.equals("")) 
+                cache.put(name, new String[] {number,time}); 
+        }
+        br.close();
+        return cache;
+    }
     public static String sendRequest(InetSocketAddress server, String req) {
 
         if (server == null || req == null)

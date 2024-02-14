@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.kalit.chord.ChordNode;
 import org.xbill.DNS.*;
+import org.xbill.DNS.Record;
 
 public class DNSLookUp implements Runnable {
     private ChordNode node;
@@ -74,8 +75,15 @@ public class DNSLookUp implements Runnable {
                 findIP = rs.getString("ip");
             }
             rs.close();
-            if (findIP == null)
+            if (findIP == null) {
+            	System.out.println(domainName+ " NOT IN DB");
+            
                 findIP = addDomainName(domainName);
+            }
+            else 
+            {
+            	System.out.println(domainName+ " IN DB");
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();

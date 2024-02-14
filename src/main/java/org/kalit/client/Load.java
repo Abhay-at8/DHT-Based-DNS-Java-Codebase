@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import org.kalit.Helper;
 import org.kalit.chord.HashFunction;
 
-public class Query {
+public class Load {
     private static InetSocketAddress address;
     private static Helper helper;
 
@@ -42,41 +42,22 @@ public class Query {
             
             File file = new File("cache.txt"); 
             
-            BufferedWriter bf = new BufferedWriter(new FileWriter(file,true));
+           // BufferedWriter bf = new BufferedWriter(new FileWriter(file,true));
             
             HashMap<String, String[]> cache= new HashMap<String, String[]>(); 
            // HashMap<String, String[]> cache = helper.cacheFiletoMap(file); 
-            if(file.isFile()) {
-            	try {
-	            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
-	            cache=(HashMap<String, String[]>)ois.readObject();
-	            ois.close();
-            	}
-            	catch(EOFException e ){
-            		System.out.println("EOF exception");
-            	}
-            }
-            long hrs=1;
-            
-//            String line = null; 
-//            BufferedReader br = new BufferedReader(new FileReader(file)); 
-//            // read file line by line 
-//            while ((line = br.readLine()) != null) { 
-//  
-//                // split the line by : 
-//            	
-//                String[] parts = line.split(":"); 
-//  
-//                // first part is name, second is number 
-//                String name = parts[0].trim(); 
-//                String number = parts[1].trim(); 
-//  
-//                // put name, number in HashMap if they are 
-//                // not empty 
-//                if (!name.equals("") && !number.equals("")) 
-//                    cache.put(name, number); 
+//            if(file.isFile()) {
+//            	try {
+//	            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));
+//	            cache=(HashMap<String, String[]>)ois.readObject();
+//	            ois.close();
+//            	}
+//            	catch(EOFException e ){
+//            		System.out.println("EOF exception");
+//            	}
 //            }
-//            br.close();
+            long hrs=1;
+ 
 
 
             // successfully constructed socket address of the node we are
@@ -135,49 +116,30 @@ public class Query {
             Scanner userinput = new Scanner(System.in);
             Scanner in = null;
             String input = "";
-            FileWriter myWriter = new FileWriter("report.csv");
-            File folder = new File("F:\\dataset\\");
+           // FileWriter myWriter = new FileWriter("report.csv");
+            File folder = new File(args[2]);
             File[] listOfFiles = folder.listFiles();
-
+            int cnt=1;
             for (File f1 : listOfFiles) {
                 if (f1.isFile()) {
-                    System.out.println("File name is F:\\dataset\\"+f1.getName());
+                	String fp=args[2]+"\\"+f1.getName();
+                    System.out.println("File name is "+fp);
                 
             
             try {
                 in = new Scanner(new FileInputStream(
-                        "F:\\dataset\\"+f1.getName()));
+                		fp));
             } catch (Exception e) {
                 e.printStackTrace();
             }
            
             if (args.length == 3) {
-            System.out.println("\nFeeding dataset. Please wait....");
+            System.out.println("\n\n\n\nFeeding dataset. Please wait....\n\n");
             
             while (in.hasNextLine()) {
                 input = in.nextLine();
                 long startTime = System.nanoTime();
-                if(cache.containsKey(input)) {
-                	String [] op=cache.get(input);
-	                long timeDiff=System.currentTimeMillis()-Long.parseLong(op[1]);
-	            	System.out.println(op[1]+"time diff is "+TimeUnit.MILLISECONDS.toHours(timeDiff));
-	            	if(TimeUnit.MILLISECONDS.toHours(timeDiff)>=hrs) {
-	            		cache.remove(input);
-	            		
-	            		System.out.println("Cache refreshed");
-	            	}
-            	else {
-                	
-                	//System.out.println("Cached"+input+":"+cache.get(input));
-                	long totalTime = System.nanoTime() - startTime;
-                	
-                	// myWriter.write(input+","+cache.get(input)+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+",cache\n");
-                	System.out.println(input+","+cache.get(input)[0]+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+",cache\n");
-                     sumTime=sumTime+totalTime;
-                     no+=1;
-                	continue;
-            	}
-                }
+
                 long hash = HashFunction.hashString(input);
                 System.out.println("\nHash value is " + Long.toHexString(hash));
                 
@@ -190,30 +152,24 @@ public class Query {
                 }
                 
                 try {
-//                	int porttest=result.getPort() + 1;
-//                	System.out.println("abhay "+porttest);
+
                     Socket querySocket = new Socket(result.getAddress(), result.getPort() + 1);
                     ObjectOutputStream objectOutputStream = new ObjectOutputStream(querySocket.getOutputStream());
                     ObjectInputStream objectInputStream = new ObjectInputStream(querySocket.getInputStream());
                     objectOutputStream.writeObject(input);
                     String resolvedIP = (String) objectInputStream.readObject();
-                    if(resolvedIP!=null && !resolvedIP.equals("null")) {
-                    	cache.put(input,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
-                    	ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
-                		oos.writeObject(cache);
-                		oos.close();
-//                    	bf.write(input + ":"+ resolvedIP+":"+System.nanoTime());
-//                        bf.newLine(); 
-//                        bf.flush(); 
-                    }
+//                    if(resolvedIP!=null && !resolvedIP.equals("null")) {
+//                    	cache.put(input,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
+//                    }
                     long totalTime = System.nanoTime() - startTime;
                     System.out.println("\nResponse from node " + address.getAddress().toString() + ", port "
                             + address.getPort() + ", position " + Helper.hexIdAndPosition(address) + ":");
                     System.out.println("Node " + result.getAddress().toString() + ", port " + result.getPort()
                             + ", position " + Helper.hexIdAndPosition(result));
                     System.out.println(input + " : " + resolvedIP);
-                    System.out.println("DNS RESOLUTION TIME: " +TimeUnit.NANOSECONDS.toMillis(totalTime)+ "ms");
-                    myWriter.write(input+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+"\n");
+                    System.out.println("DNS RESOLUTION TIME: " +TimeUnit.NANOSECONDS.toMillis(totalTime)+ "ms. count is" +cnt+ "of" +fp);
+                    cnt+=1;
+                   // myWriter.write(input+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+"\n");
           
                     sumTime=sumTime+totalTime;
                     no+=1;
@@ -231,16 +187,20 @@ public class Query {
             
 
             System.out.println("\nCompleted feeding dataset.\n");
-            }//tbd
+            }
+           }//tbd
           }//tbd
             if(no!=0) {
             	avgTime=sumTime/no;
             	//myWriter.close();
             	System.out.println("Avg TIME: " + TimeUnit.NANOSECONDS.toMillis((long) avgTime)+ "ms");
+//            	ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
+//        		oos.writeObject(cache);
+//        		oos.close();
             }
         //    System.exit(0);
-            }
             
+            /*
             while (true) {
             	
                 System.out.println("\nPlease enter your domainName (or type \"quit\" to leave): ");
@@ -328,7 +288,7 @@ public class Query {
                         e.printStackTrace();
                     }
                 }
-            }   
+            }*/   
         } else {
             System.out.println("\nInvalid input. Now exit.\n");
         }

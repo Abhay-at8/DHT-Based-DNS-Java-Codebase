@@ -2,6 +2,8 @@ package org.kalit.chord;
 
 import org.kalit.Helper;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.net.InetSocketAddress;
 import java.util.Scanner;
 
@@ -10,7 +12,7 @@ public class Chord {
     private static InetSocketAddress contact;
     private static Helper helper;
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws FileNotFoundException {
         helper = new Helper();
 
         String IP = args[0];
@@ -45,6 +47,7 @@ public class Chord {
         node.printNeighbors();
 
         Scanner userinput = new Scanner(System.in);
+        
         while (true) {
             System.out.println("\nType \"info\" to check this node's data or \n type \"quit\"to leave ring: ");
             String command = null;

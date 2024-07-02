@@ -11,9 +11,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +28,7 @@ public class Load {
     private static InetSocketAddress address;
     private static Helper helper;
 
-    public static void main(String args[]) throws IOException, ClassNotFoundException {
+    public static void main(String args[]) throws IOException, ClassNotFoundException, InterruptedException {
         helper = new Helper();
         
 
@@ -122,7 +125,7 @@ public class Load {
             int cnt=1;
             for (File f1 : listOfFiles) {
                 if (f1.isFile()) {
-                	String fp=args[2]+"\\"+f1.getName();
+                	String fp=args[2]+"//"+f1.getName();
                     System.out.println("File name is "+fp);
                 
             
@@ -135,7 +138,7 @@ public class Load {
            
             if (args.length == 3) {
             System.out.println("\n\n\n\nFeeding dataset. Please wait....\n\n");
-            
+            ArrayList<String> er=new ArrayList<>();
             while (in.hasNextLine()) {
                 input = in.nextLine();
                 long startTime = System.nanoTime();
@@ -152,15 +155,29 @@ public class Load {
                 }
                 
                 try {
-
+                	/*
                     Socket querySocket = new Socket(result.getAddress(), result.getPort() + 1);
                     ObjectOutputStream objectOutputStream = new ObjectOutputStream(querySocket.getOutputStream());
                     ObjectInputStream objectInputStream = new ObjectInputStream(querySocket.getInputStream());
                     objectOutputStream.writeObject(input);
-                    String resolvedIP = (String) objectInputStream.readObject();
+                    String resolvedIP = (String) objectInputStream.readObject();*/
 //                    if(resolvedIP!=null && !resolvedIP.equals("null")) {
 //                    	cache.put(input,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
 //                    }
+                	
+                	DatagramSocket querySocket = new DatagramSocket();
+                	byte[] command = input.getBytes();
+                	
+                    DatagramPacket request = new DatagramPacket(command, command.length, result.getAddress(), result.getPort() + 1);
+                    querySocket.send(request);
+     
+                    byte[] buffer = new byte[65000];
+                    DatagramPacket responseUDP = new DatagramPacket(buffer, buffer.length);
+                    querySocket.receive(responseUDP);
+     
+                    String resolvedIP = new String(buffer, 0, responseUDP.getLength());
+     
+                    System.out.println(resolvedIP);
                     long totalTime = System.nanoTime() - startTime;
                     System.out.println("\nResponse from node " + address.getAddress().toString() + ", port "
                             + address.getPort() + ", position " + Helper.hexIdAndPosition(address) + ":");
@@ -175,21 +192,81 @@ public class Load {
                     no+=1;
                     
                     querySocket.close();
+             
+                    	
+                    
+                    
+                    
+                    
                 } catch (UnknownHostException e) {
                     e.printStackTrace();
                 } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
+                	er.add(input);
+                	System.out.println(input);
                     e.printStackTrace();
                 }
             }
             in.close();
-            
+            while(er.size()!=0) {
+            	Thread.sleep(2000);
+            	System.out.println("Some Errors repeatign for "+er.size());
+            	ArrayList <String> domains=er;
+            	er=new ArrayList<>();
+            	for (String domain : domains) {
+		            try {
+		            	
+		            	long startTime = System.nanoTime();
+		
+		                long hash = HashFunction.hashString(domain);
+		                System.out.println("\nHash value is " + Long.toHexString(hash));
+		                
+		                InetSocketAddress result = Helper.requestAddress(address, "FINDSUCC_" + hash);
+		
+		                if (result == null) {
+		                    System.out.println("The node your are contacting is disconnected. Now exit.");
+		                    userinput.close();
+		                    System.exit(0);
+		                }
+		            	Socket querySocket = new Socket(result.getAddress(), result.getPort() + 1);
+		                ObjectOutputStream objectOutputStream = new ObjectOutputStream(querySocket.getOutputStream());
+		                ObjectInputStream objectInputStream = new ObjectInputStream(querySocket.getInputStream());
+		                objectOutputStream.writeObject(domain);
+		                String resolvedIP = (String) objectInputStream.readObject();
+		//                if(resolvedIP!=null && !resolvedIP.equals("null")) {
+		//                	cache.put(input,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
+		//                }
+		                long totalTime = System.nanoTime() - startTime;
+		                System.out.println("\nResponse from node " + address.getAddress().toString() + ", port "
+		                        + address.getPort() + ", position " + Helper.hexIdAndPosition(address) + ":");
+		                System.out.println("Node " + result.getAddress().toString() + ", port " + result.getPort()
+		                        + ", position " + Helper.hexIdAndPosition(result));
+		                System.out.println(domain + " : " + resolvedIP);
+		                System.out.println("DNS RESOLUTION TIME: " +TimeUnit.NANOSECONDS.toMillis(totalTime)+ "ms. count is" +cnt+ "of" +fp);
+		                cnt+=1;
+		               // myWriter.write(input+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+"\n");
+		      
+		                sumTime=sumTime+totalTime;
+		                no+=1;
+		                
+		                querySocket.close();
+					} catch (UnknownHostException e) {
+		                e.printStackTrace();
+		            } catch (IOException e) {
+		            	er.add(input);
+		            	System.out.println(input);
+		                e.printStackTrace();
+		            } catch (ClassNotFoundException e) {
+		                e.printStackTrace();
+		            }
+            }
+            }
 
-            System.out.println("\nCompleted feeding dataset.\n");
+   
+            	System.out.println("\nCompleted feeding dataset.\n");
             }
            }//tbd
           }//tbd
+                
             if(no!=0) {
             	avgTime=sumTime/no;
             	//myWriter.close();

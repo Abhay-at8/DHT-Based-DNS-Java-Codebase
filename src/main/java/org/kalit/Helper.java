@@ -12,8 +12,10 @@ import org.kalit.chord.HashFunction;
 public class Helper {
 
     private static HashMap<Integer, Long> powerOfTwo = null;
+    public static boolean isOffline;
 
     public Helper() {
+    	isOffline=true;
         powerOfTwo = new HashMap<Integer, Long>();
         long base = 1;
         for (int i = 0; i <= 32; i++) {

@@ -11,6 +11,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -136,19 +138,15 @@ public class Query {
             Scanner in = null;
             String input = "";
             FileWriter myWriter = new FileWriter("report.csv");
-            File folder = new File("F:\\dataset\\");
-            File[] listOfFiles = folder.listFiles();
+            
 
-            for (File f1 : listOfFiles) {
-                if (f1.isFile()) {
-                    System.out.println("File name is F:\\dataset\\"+f1.getName());
-                
+            
             
             try {
                 in = new Scanner(new FileInputStream(
-                        "F:\\dataset\\"+f1.getName()));
+                        "./dataset"));
             } catch (Exception e) {
-                e.printStackTrace();
+                e.printStackTrace(); 
             }
            
             if (args.length == 3) {
@@ -173,6 +171,9 @@ public class Query {
                 	
                 	// myWriter.write(input+","+cache.get(input)+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+",cache\n");
                 	System.out.println(input+","+cache.get(input)[0]+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+",cache\n");
+                	myWriter.write(input+","+cache.get(input)[0]+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+","+totalTime+"\n");
+                    
+                	
                      sumTime=sumTime+totalTime;
                      no+=1;
                 	continue;
@@ -192,11 +193,24 @@ public class Query {
                 try {
 //                	int porttest=result.getPort() + 1;
 //                	System.out.println("abhay "+porttest);
-                    Socket querySocket = new Socket(result.getAddress(), result.getPort() + 1);
+                    /*Socket querySocket = new Socket(result.getAddress(), result.getPort() + 1);
                     ObjectOutputStream objectOutputStream = new ObjectOutputStream(querySocket.getOutputStream());
                     ObjectInputStream objectInputStream = new ObjectInputStream(querySocket.getInputStream());
                     objectOutputStream.writeObject(input);
-                    String resolvedIP = (String) objectInputStream.readObject();
+                    String resolvedIP = (String) objectInputStream.readObject();*/
+                	DatagramSocket querySocket = new DatagramSocket();
+                	byte[] inp = input.getBytes();
+                	
+                    DatagramPacket request = new DatagramPacket(inp, inp.length, result.getAddress(), result.getPort() + 1);
+                   // System.out.println("sent buffer "+ input);
+                    querySocket.send(request);
+     
+                    byte[] buffer = new byte[65000];
+                    
+                    DatagramPacket responseUDP = new DatagramPacket(buffer, buffer.length);
+                    querySocket.receive(responseUDP);
+     
+                    String resolvedIP = new String(buffer, 0, responseUDP.getLength());
                     if(resolvedIP!=null && !resolvedIP.equals("null")) {
                     	cache.put(input,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
                     	ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
@@ -213,7 +227,7 @@ public class Query {
                             + ", position " + Helper.hexIdAndPosition(result));
                     System.out.println(input + " : " + resolvedIP);
                     System.out.println("DNS RESOLUTION TIME: " +TimeUnit.NANOSECONDS.toMillis(totalTime)+ "ms");
-                    myWriter.write(input+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+"\n");
+                    myWriter.write(input+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+","+totalTime+"\n");
           
                     sumTime=sumTime+totalTime;
                     no+=1;
@@ -223,16 +237,13 @@ public class Query {
                     e.printStackTrace();
                 } catch (IOException e) {
                     e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
                 }
             }
             in.close();
             
 
             System.out.println("\nCompleted feeding dataset.\n");
-            }//tbd
-          }//tbd
+            
             if(no!=0) {
             	avgTime=sumTime/no;
             	//myWriter.close();
@@ -290,12 +301,36 @@ public class Query {
                         System.exit(0);
                     }
 
-                    try {
+                    try {/*
                         Socket querySocket = new Socket(result.getAddress(), result.getPort() + 1);
                         ObjectOutputStream objectOutputStream = new ObjectOutputStream(querySocket.getOutputStream());
                         ObjectInputStream objectInputStream = new ObjectInputStream(querySocket.getInputStream());
                         objectOutputStream.writeObject(command);
                         String resolvedIP = (String) objectInputStream.readObject();
+                        if(resolvedIP!=null && !resolvedIP.equals("null")) {
+                        	cache.put(command,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
+//                        	bf.write(command + ":"+ resolvedIP);
+//                            bf.newLine(); 
+//                            bf.flush();
+                        	ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
+                    		oos.writeObject(cache);
+                    		oos.close();
+                        }*/
+                    	
+                    	DatagramSocket querySocket = new DatagramSocket();
+                    	byte[] inp = command.getBytes();
+                    	
+                        DatagramPacket request = new DatagramPacket(inp, inp.length, result.getAddress(), result.getPort() + 1);
+                        System.out.println("sent buffer "+ command);
+                        querySocket.send(request);
+         
+                        byte[] buffer = new byte[65000];
+                        
+                        DatagramPacket responseUDP = new DatagramPacket(buffer, buffer.length);
+                        querySocket.receive(responseUDP);
+         
+                        String resolvedIP = new String(buffer, 0, responseUDP.getLength());
+                        
                         if(resolvedIP!=null && !resolvedIP.equals("null")) {
                         	cache.put(command,new String[] {resolvedIP,Long.toString(System.currentTimeMillis())});
 //                        	bf.write(command + ":"+ resolvedIP);
@@ -315,7 +350,7 @@ public class Query {
                         System.out.println("DNS RESOLUTION TIME: " +TimeUnit.NANOSECONDS.toMillis(totalTime)+ "ms");
                         sumTime=sumTime+totalTime;
                         no+=1;
-                        myWriter.write(command+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+"\n");
+                        myWriter.write(command+","+resolvedIP+","+TimeUnit.NANOSECONDS.toMillis(totalTime)+","+address.getAddress().toString()+","+totalTime+"\n");
                          
                         
 
@@ -323,8 +358,6 @@ public class Query {
                     } catch (UnknownHostException e) {
                         e.printStackTrace();
                     } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (ClassNotFoundException e) {
                         e.printStackTrace();
                     }
                 }
